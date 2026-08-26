@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Pipeline</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#121212">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pipeline">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="icon" href="./icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #121212;
+    --surface: #1a1a1a;
+    --surface-raised: #202020;
+    --border: #2e2e2e;
+    --border-light: #3a3a3a;
+    --text: #f2f2ef;
+    --text-dim: #ffffff;
+    --text-faint: #ffffff;
+    --mint: #5fe3a8;
+    --mint-dim: #2d5c48;
+    --amber: #d4a24c;
+    --red: #d4685f;
+    --red-dim: #8a5b52;
+    --font-display: 'IBM Plex Mono', 'Courier New', monospace;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 17px;
+    padding: calc(40px + env(safe-area-inset-top)) 32px 100px;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1320px; margin: 0 auto; }
+
+  /* ---------- HEADER ---------- */
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 20px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 20px;
+    margin-bottom: 28px;
+  }
+
+  h1 {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    font-size: 32px;
+    letter-spacing: 0.2px;
+    color: #ffffff;
+    text-transform: none;
+  }
+
+  h1 span { display: block; color: var(--text-faint); font-weight: 400; font-size: 14px; text-transform: none; letter-spacing: normal; font-family: var(--font-body); margin-top: 4px; }
+
+  .header-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+  }
+
+  .stats {
+    display: flex;
+    gap: 36px;
+    font-family: var(--font-display);
+  }
+
+  .stat { text-align: right; }
+  .stat-num { font-size: 36px; font-weight: 600; line-height: 1; }
+  .stat-label {
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-top: 6px;
+  }
+  .stat-num.mint { color: var(--mint); }
+
+  .sync-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-display);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-faint);
+    cursor: pointer;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 5px 10px;
+    background: var(--surface);
+    transition: border-color 0.15s ease;
+  }
+  .sync-status:hover { border-color: var(--border-light); }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .sync-status.synced .sync-dot { background: var(--mint); }
+  .sync-status.offline .sync-dot { background: var(--amber); }
+  .sync-status.signedout .sync-dot { background: var(--text-faint); }
+  .sync-status.syncing .sync-dot { background: var(--mint); animation: sync-pulse 1s ease-in-out infinite; }
+  .sync-status.error .sync-dot { background: var(--red); }
+  @keyframes sync-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  /* ---------- TIMELINE ---------- */
+  .flow-wrap {
+    padding: 24px 0 32px;
+    overflow-x: auto;
+  }
+  .flow-svg {
+    display: block;
+    max-width: 100%;
+  }
+  .flow-key {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .flow-key-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--font-display);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .flow-key-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .flow-svg .timeline-axis {
+    stroke: var(--border);
+    stroke-width: 1.5;
+  }
+  .flow-svg .timeline-tick {
+    stroke: var(--border);
+    stroke-width: 1;
+  }
+  .flow-svg .timeline-month-label {
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    fill: var(--text-faint);
+    opacity: 0.75;
+  }
+  .flow-svg .timeline-month-count {
+    font-family: var(--font-display);
+    font-size: 10px;
+    fill: var(--text-faint);
+    opacity: 0.5;
+  }
+  .flow-svg .timeline-dot {
+    stroke: var(--bg);
+    stroke-width: 1.5;
+    cursor: pointer;
+    transition: cy 0.4s ease, r 0.15s ease;
+  }
+  .flow-svg .timeline-dot:hover {
+    stroke: var(--text);
+  }
+  .flow-empty {
+    color: var(--text-faint);
+    opacity: 0.6;
+    font-size: 15px;
+    font-style: italic;
+    padding: 20px 0;
+    text-align: center;
+  }
+
+  /* ---------- SOURCE FILTER ---------- */
+  .source-filter {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .filter-pill {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-faint);
+    padding: 8px 14px;
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-radius: 20px;
+    cursor: pointer;
+  }
+  .filter-pill.active {
+    border-color: var(--mint);
+    color: var(--mint);
+    background: rgba(95,227,168,0.08);
+  }
+
+  /* ---------- QUICK ADD ---------- */
+  .quick-add {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+
+  .quick-add input, .quick-add select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 16px 16px;
+    font-family: var(--font-body);
+    font-size: 17px;
+    border-radius: 4px;
+    color-scheme: dark;
+  }
+  .quick-add input::placeholder { color: var(--text-faint); }
+  .quick-add input:focus, .quick-add select:focus { outline: none; border-color: var(--mint-dim); }
+
+  .quick-add input[name="name"] { flex: 1 1 160px; }
+  .quick-add select[name="source"] { flex: 1 1 140px; }
+  .quick-add input[name="sourceDetail"] { flex: 1 1 160px; }
+  .quick-add input[name="context"] { flex: 2 1 260px; }
+  .quick-add input[name="date"] { flex: 0 1 170px; }
+
+  .btn-add {
+    background: var(--mint);
+    color: #0a1a13;
+    border: none;
+    padding: 14px 24px;
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-add:hover { opacity: 0.85; }
+
+  /* ---------- BOARD ---------- */
+  .board {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 700px) {
+    .board { grid-template-columns: 1fr; }
+  }
+
+  .column {
+    background: rgba(255,255,255,0.015);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    min-height: 200px;
+  }
+
+  .column-head {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .column-title {
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  .column-count {
+    font-family: var(--font-display);
+    font-size: 14px;
+    color: var(--text-faint);
+    background: var(--surface);
+    padding: 3px 10px;
+    border-radius: 12px;
+  }
+
+  .column-body {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .empty-hint {
+    color: var(--text-faint);
+    font-size: 16px;
+    padding: 26px 14px;
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  /* ---------- CARD ---------- */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px 16px 14px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .card:hover { border-color: var(--border-light); }
+
+  .card-name {
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .card-context {
+    font-size: 15px;
+    color: var(--text-dim);
+    line-height: 1.45;
+    margin-bottom: 12px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .card-date {
+    font-family: var(--font-display);
+    font-size: 13px;
+    color: var(--text-faint);
+  }
+
+  .tag {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 4px 9px;
+    border-radius: 3px;
+  }
+  .tag.opportunity { background: rgba(95,227,168,0.15); color: var(--mint); }
+  .tag.followup { background: rgba(212,162,76,0.15); color: var(--amber); }
+  .tag.nothing { background: rgba(212,104,95,0.15); color: var(--red); }
+
+  .card-badges {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .badge-call {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.06);
+    color: var(--text);
+    border: 1px solid var(--border-light);
+  }
+  .badge-source {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 3px;
+    background: rgba(95,227,168,0.1);
+    color: var(--mint);
+    border: 1px solid var(--mint-dim);
+  }
+
+  .call-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .call-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .call-toggle input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--mint);
+    cursor: pointer;
+  }
+  .call-toggle span {
+    font-size: 16px;
+    color: var(--text);
+  }
+  .call-toggle-row input[type="date"] {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 10px;
+    font-family: var(--font-body);
+    font-size: 15px;
+    border-radius: 4px;
+    color-scheme: dark;
+  }
+
+  /* ---------- MODAL ---------- */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 10;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .overlay.active { display: flex; }
+
+  .modal {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    width: 100%;
+    max-width: 560px;
+    padding: 32px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal-title {
+    font-size: 26px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .modal-sub {
+    font-family: var(--font-display);
+    font-size: 14px;
+    color: var(--text-faint);
+    margin-bottom: 26px;
+  }
+
+  .field { margin-bottom: 22px; }
+  .field label {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 8px;
+  }
+  .field input, .field textarea, .field select {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 13px 14px;
+    font-family: var(--font-body);
+    font-size: 17px;
+    border-radius: 4px;
+    color-scheme: dark;
+  }
+  .field textarea { resize: vertical; min-height: 100px; }
+  .field input:focus, .field textarea:focus, .field select:focus {
+    outline: none; border-color: var(--mint-dim);
+  }
+  .field-row { display: flex; gap: 12px; }
+  .field-row .field { flex: 1; }
+
+  .outcome-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .outcome-btn {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 13px 6px;
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .outcome-btn.active.opportunity { border-color: var(--mint); color: var(--mint); background: rgba(95,227,168,0.1); }
+  .outcome-btn.active.followup { border-color: var(--amber); color: var(--amber); background: rgba(212,162,76,0.1); }
+  .outcome-btn.active.nothing { border-color: var(--red); color: var(--red); background: rgba(212,104,95,0.1); }
+  .outcome-btn.active.stillDeciding { border-color: var(--text-faint); color: var(--text-dim); background: rgba(255,255,255,0.03); }
+
+  .modal-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .btn-delete {
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    font-size: 15px;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  .btn-delete:hover { color: var(--red-dim); }
+
+  .btn-cadence {
+    background: none;
+    border: 1px solid var(--mint-dim);
+    color: var(--mint);
+    padding: 10px 16px;
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .btn-cadence:hover { background: rgba(95,227,168,0.1); }
+  .modal-actions-row { display: flex; gap: 8px; }
+
+  .badge-cadence {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 3px;
+    background: rgba(95,227,168,0.1);
+    color: var(--mint);
+    border: 1px solid var(--mint-dim);
+  }
+
+  .btn-save {
+    background: var(--mint);
+    color: #0a1a13;
+    border: none;
+    padding: 13px 28px;
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .btn-close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    font-size: 26px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .modal { position: relative; }
+
+  .status-msg {
+    font-family: var(--font-display);
+    font-size: 13px;
+    color: var(--text-faint);
+    text-align: center;
+    margin-top: 30px;
+  }
+
+  .backup-row {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .btn-backup {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 8px 16px;
+    font-family: var(--font-display);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .btn-backup:hover { border-color: var(--border-light); color: var(--text); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Pipeline <span>/ met &rarr; outcome</span></h1>
+    <div class="header-right">
+      <div class="stats">
+        <div class="stat"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total</div></div>
+        <div class="stat"><div class="stat-num" id="stat-calls">0</div><div class="stat-label">Follow-ups happened</div></div>
+        <div class="stat"><div class="stat-num mint" id="stat-rate">&mdash;</div><div class="stat-label">Hit rate</div></div>
+      </div>
+      <div class="sync-status signedout" id="syncStatus">
+        <span class="sync-dot"></span>
+        <span id="syncStatusLabel">Sign in to sync</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="flow-wrap" id="flowWrap">
+    <div class="flow-key" id="flowKey"></div>
+    <svg class="flow-svg" id="flowSvg" width="720" height="240" viewBox="0 0 720 240"></svg>
+  </div>
+
+  <div class="source-filter" id="sourceFilter"></div>
+
+  <div class="quick-add">
+    <input type="text" name="name" placeholder="Name" id="qa-name">
+    <select name="source" id="qa-source"></select>
+    <input type="text" name="sourceDetail" placeholder="Detail (event name, who referred, etc.)" id="qa-sourceDetail">
+    <input type="text" name="context" placeholder="What did you talk about?" id="qa-context">
+    <input type="date" name="date" id="qa-date">
+    <button class="btn-add" onclick="quickAdd()">+ Add</button>
+  </div>
+
+  <div class="board">
+    <div class="column">
+      <div class="column-head">
+        <div class="column-title">Met</div>
+        <div class="column-count" id="count-engaged">0</div>
+      </div>
+      <div class="column-body" id="col-engaged"></div>
+    </div>
+    <div class="column">
+      <div class="column-head">
+        <div class="column-title">Outcome</div>
+        <div class="column-count" id="count-outcome">0</div>
+      </div>
+      <div class="column-body" id="col-outcome"></div>
+    </div>
+  </div>
+
+  <div class="status-msg" id="status-msg">&nbsp;</div>
+  <div class="backup-row">
+    <button class="btn-backup" onclick="exportBackup()">Export backup</button>
+    <button class="btn-backup" onclick="triggerImport()">Import backup</button>
+    <input type="file" id="import-file-input" accept="application/json" style="display:none;" onchange="importBackup(this)">
+  </div>
+</div>
+
+<div class="overlay" id="syncModalOverlay">
+  <div class="modal">
+    <div class="modal-title">Google Drive sync</div>
+    <div class="modal-sub" id="syncModalBody">Connect Google Drive so this pipeline stays the same on your phone and your laptop. Your data is stored in a hidden app folder in your Drive.</div>
+    <div class="modal-actions">
+      <div></div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-backup" onclick="closeSyncModal()">Close</button>
+        <button class="btn-save" id="connectDriveBtn" onclick="requestSignIn()">Connect Google Drive</button>
+        <button class="btn-cadence" id="disconnectDriveBtn" style="display:none;" onclick="disconnectDrive()">Disconnect</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <button class="btn-close" onclick="closeModal()">&times;</button>
+    <div class="modal-title" id="modal-name">&nbsp;</div>
+    <div class="modal-sub" id="modal-sub">&nbsp;</div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Source</label>
+        <select id="edit-source"></select>
+      </div>
+      <div class="field">
+        <label>Detail</label>
+        <input type="text" id="edit-sourceDetail" placeholder="Event name, who referred, etc.">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Context</label>
+      <input type="text" id="edit-context">
+    </div>
+
+    <div class="field">
+      <label>Notes</label>
+      <textarea id="edit-notes" placeholder="What's the read? Next step?"></textarea>
+    </div>
+
+    <div class="field">
+      <label>Follow-up call happened?</label>
+      <div class="call-toggle-row">
+        <label class="call-toggle">
+          <input type="checkbox" id="edit-call-happened" onchange="toggleCallDate()">
+          <span>Yes</span>
+        </label>
+        <input type="date" id="edit-call-date">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Outcome</label>
+      <div class="outcome-row" id="outcome-buttons"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-delete" onclick="deleteContact()">Delete</button>
+      <div class="modal-actions-row">
+        <button class="btn-cadence" id="btn-cadence" onclick="sendToCadence()">&rarr; Network Cadence</button>
+        <button class="btn-save" onclick="saveModal()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+  const STORAGE_KEY = 'pipeline-contacts';
+  const CADENCE_URL = 'https://cristinadigiacomo.github.io/network-cadence/';
+  let contacts = [];
+  let activeId = null;
+  let activeFilter = 'all';
+  const outcomes = ['opportunity', 'followup', 'nothing'];
+  const outcomeLabels = { opportunity: 'Opportunity', followup: 'Follow-up', nothing: 'Nothing burger' };
+
+  const SOURCES = ['linkedin', 'event', 'referral', 'outreach', 'other'];
+  const sourceLabels = { linkedin: 'LinkedIn', event: 'Event', referral: 'Referral', outreach: 'Outreach', other: 'Other' };
+
+  function populateSourceSelect(el, includeAll) {
+    let html = includeAll ? '<option value="all">All sources</option>' : '';
+    html += SOURCES.map(s => `<option value="${s}">${sourceLabels[s]}</option>`).join('');
+    el.innerHTML = html;
+  }
+
+  function todayStr() {
+    return new Date().toISOString().slice(0,10);
+  }
+
+  function uid() {
+    return 'c_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+  }
+
+  const usingClaudeStorage = (typeof window.storage !== 'undefined' && window.storage !== null);
+
+  async function storageRead(key) {
+    if (usingClaudeStorage) {
+      const result = await window.storage.get(key, false);
+      return result && result.value ? result.value : null;
+    }
+    return localStorage.getItem(key);
+  }
+
+  async function storageWrite(key, value) {
+    if (usingClaudeStorage) {
+      await window.storage.set(key, value, false);
+    } else {
+      localStorage.setItem(key, value);
+    }
+  }
+
+  const UPDATED_AT_KEY = 'pipeline-updated-at';
+  let lastUpdatedAt = parseInt(localStorage.getItem(UPDATED_AT_KEY) || '0', 10) || 0;
+
+  function touch() {
+    lastUpdatedAt = Date.now();
+    localStorage.setItem(UPDATED_AT_KEY, String(lastUpdatedAt));
+  }
+
+  async function loadContacts() {
+    try {
+      const raw = await storageRead(STORAGE_KEY);
+      contacts = raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      contacts = [];
+    }
+    render();
+  }
+
+  async function persist() {
+    touch();
+    setStatus('Saving...');
+    try {
+      await storageWrite(STORAGE_KEY, JSON.stringify(contacts));
+      setStatus('Saved' + (usingClaudeStorage ? '' : ' locally in this browser'));
+      setTimeout(() => setStatus(''), 1800);
+    } catch (e) {
+      setStatus('Save failed — use Export to back up your data');
+    }
+    scheduleDriveWrite();
+  }
+
+  function setStatus(msg) {
+    document.getElementById('status-msg').textContent = msg || ' ';
+  }
+
+  function exportBackup() {
+    const blob = new Blob([JSON.stringify(contacts, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = STORAGE_KEY + '-backup-' + todayStr() + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function triggerImport() {
+    document.getElementById('import-file-input').click();
+  }
+
+  function importBackup(fileInput) {
+    const file = fileInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const imported = JSON.parse(e.target.result);
+        if (!Array.isArray(imported)) throw new Error('not an array');
+        const ok = confirm('This will replace everything currently in the board with ' + imported.length + ' entries from this file. Continue?');
+        if (!ok) return;
+        contacts = imported;
+        persist();
+        render();
+      } catch (err) {
+        alert('Could not read that file — it doesn’t look like a valid backup.');
+      }
+    };
+    reader.readAsText(file);
+    fileInput.value = '';
+  }
+
+  function quickAdd() {
+    const nameEl = document.getElementById('qa-name');
+    const sourceEl = document.getElementById('qa-source');
+    const detailEl = document.getElementById('qa-sourceDetail');
+    const contextEl = document.getElementById('qa-context');
+    const dateEl = document.getElementById('qa-date');
+    const name = nameEl.value.trim();
+    if (!name) { nameEl.focus(); return; }
+
+    contacts.unshift({
+      id: uid(),
+      name,
+      source: sourceEl.value || 'other',
+      sourceDetail: detailEl.value.trim(),
+      context: contextEl.value.trim(),
+      notes: '',
+      date: dateEl.value || todayStr(),
+      callDate: null,
+      outcome: null
+    });
+
+    nameEl.value = '';
+    detailEl.value = '';
+    contextEl.value = '';
+    dateEl.value = '';
+    persist();
+    render();
+  }
+
+  function sourceBadgeText(c) {
+    const label = sourceLabels[c.source] || 'Other';
+    return c.sourceDetail ? (label + ': ' + c.sourceDetail) : label;
+  }
+
+  function visibleContacts() {
+    if (activeFilter === 'all') return contacts;
+    return contacts.filter(c => (c.source || 'other') === activeFilter);
+  }
+
+  function renderSourceFilter() {
+    const el = document.getElementById('sourceFilter');
+    const counts = { all: contacts.length };
+    SOURCES.forEach(s => { counts[s] = contacts.filter(c => (c.source || 'other') === s).length; });
+    const pills = [{ key: 'all', label: 'All' }].concat(SOURCES.map(s => ({ key: s, label: sourceLabels[s] })));
+    el.innerHTML = pills.map(p => `
+      <button class="filter-pill ${activeFilter === p.key ? 'active' : ''}" onclick="setFilter('${p.key}')">${p.label} (${counts[p.key]})</button>
+    `).join('');
+  }
+
+  function setFilter(key) {
+    activeFilter = key;
+    render();
+  }
+
+  function render() {
+    renderSourceFilter();
+    const visible = visibleContacts();
+    const buckets = {
+      engaged: visible.filter(c => !c.outcome),
+      outcome: visible.filter(c => c.outcome)
+    };
+
+    Object.keys(buckets).forEach(key => {
+      const col = document.getElementById('col-' + key);
+      const items = buckets[key].sort((a,b) => (b.date || '').localeCompare(a.date || ''));
+      document.getElementById('count-' + key).textContent = items.length;
+
+      if (items.length === 0) {
+        col.innerHTML = `<div class="empty-hint">${
+          key === 'engaged' ? 'Nothing here yet. Add someone you met above.' :
+          'Outcomes land here once you tag one.'
+        }</div>`;
+        return;
+      }
+
+      col.innerHTML = items.map(c => `
+        <div class="card" onclick="openModal('${c.id}')">
+          <div class="card-name">${escapeHtml(c.name)}</div>
+          ${c.context ? `<div class="card-context">${escapeHtml(c.context)}</div>` : ''}
+          <div class="card-badges">
+            <div class="badge-source">${escapeHtml(sourceBadgeText(c))}</div>
+            ${c.callDate ? `<div class="badge-call">Follow-up ${c.callDate}</div>` : ''}
+            ${c.inCadence ? `<div class="badge-cadence">In Cadence</div>` : ''}
+          </div>
+          <div class="card-meta">
+            <div class="card-date">${c.date || ''}</div>
+            ${c.outcome ? `<div class="tag ${c.outcome}">${outcomeLabels[c.outcome]}</div>` : ''}
+          </div>
+        </div>
+      `).join('');
+    });
+
+    // header stats (always across ALL contacts, not just the filtered view)
+    const total = contacts.length;
+    const calls = contacts.filter(c => c.callDate).length;
+    const decided = contacts.filter(c => c.outcome).length;
+    const wins = contacts.filter(c => c.outcome === 'opportunity').length;
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-calls').textContent = calls;
+    document.getElementById('stat-rate').textContent = decided > 0 ? Math.round((wins/decided)*100) + '%' : '—';
+
+    renderTimeline();
+  }
+
+  function outcomeColor(c) {
+    if (c.outcome === 'opportunity') return 'var(--mint)';
+    if (c.outcome === 'followup') return 'var(--amber)';
+    if (c.outcome === 'nothing') return 'var(--red)';
+    return '#575757';
+  }
+
+  function renderTimeline() {
+    const svg = document.getElementById('flowSvg');
+    const wrap = document.getElementById('flowWrap');
+    const legend = document.getElementById('flowKey');
+    svg.innerHTML = '';
+
+    const existingEmpty = wrap.querySelector('.flow-empty');
+    if (existingEmpty) existingEmpty.remove();
+
+    const withDates = visibleContacts().filter(c => c.date);
+    const allCategories = [
+      { label: 'Opportunity', color: 'var(--mint)' },
+      { label: 'Follow-up', color: 'var(--amber)' },
+      { label: 'Nothing burger', color: 'var(--red)' },
+      { label: 'Still deciding', color: '#575757' }
+    ];
+    legend.innerHTML = allCategories.map(c => `
+      <div class="flow-key-item">
+        <span class="flow-key-dot" style="background:${c.color}"></span>
+        <span>${c.label}</span>
+      </div>
+    `).join('');
+
+    if (!withDates.length) {
+      const empty = document.createElement('div');
+      empty.className = 'flow-empty';
+      empty.textContent = 'Your timeline fills in as you add people you’ve met.';
+      wrap.appendChild(empty);
+      svg.style.display = 'none';
+      return;
+    }
+    svg.style.display = '';
+
+    const byMonth = {};
+    withDates.forEach(c => {
+      const key = c.date.slice(0, 7);
+      if (!byMonth[key]) byMonth[key] = [];
+      byMonth[key].push(c);
+    });
+    const monthKeys = Object.keys(byMonth).sort();
+
+    const ns = 'http://www.w3.org/2000/svg';
+    const MONTH_W = 84;
+    const DOT_R = 6;
+    const DOT_GAP = 5;
+    const PER_ROW = 3;
+    const LEFT_PAD = 50;
+    const RIGHT_PAD = 40;
+
+    const maxRows = Math.max(...monthKeys.map(k => Math.ceil(byMonth[k].length / PER_ROW)));
+    const H = Math.max(200, 90 + maxRows * (DOT_R * 2 + DOT_GAP));
+    const W = Math.max(640, LEFT_PAD + monthKeys.length * MONTH_W + RIGHT_PAD);
+    const axisY = H - 46;
+
+    svg.setAttribute('width', W);
+    svg.setAttribute('height', H);
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+    const axis = document.createElementNS(ns, 'line');
+    axis.setAttribute('class', 'timeline-axis');
+    axis.setAttribute('x1', LEFT_PAD - 20);
+    axis.setAttribute('y1', axisY);
+    axis.setAttribute('x2', W - RIGHT_PAD + 20);
+    axis.setAttribute('y2', axisY);
+    svg.appendChild(axis);
+
+    monthKeys.forEach((key, mi) => {
+      const colX = LEFT_PAD + mi * MONTH_W + MONTH_W / 2;
+      const monthContacts = byMonth[key];
+
+      const tick = document.createElementNS(ns, 'line');
+      tick.setAttribute('class', 'timeline-tick');
+      tick.setAttribute('x1', colX);
+      tick.setAttribute('y1', axisY - 4);
+      tick.setAttribute('x2', colX);
+      tick.setAttribute('y2', axisY + 4);
+      svg.appendChild(tick);
+
+      const d = new Date(key + '-01T00:00:00');
+      const monthLabel = d.toLocaleDateString([], { month: 'short' }) + " '" + String(d.getFullYear()).slice(2);
+
+      const label = document.createElementNS(ns, 'text');
+      label.setAttribute('x', colX);
+      label.setAttribute('y', axisY + 20);
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('class', 'timeline-month-label');
+      label.textContent = monthLabel;
+      svg.appendChild(label);
+
+      const countLabel = document.createElementNS(ns, 'text');
+      countLabel.setAttribute('x', colX);
+      countLabel.setAttribute('y', axisY + 34);
+      countLabel.setAttribute('text-anchor', 'middle');
+      countLabel.setAttribute('class', 'timeline-month-count');
+      countLabel.textContent = monthContacts.length;
+      svg.appendChild(countLabel);
+
+      monthContacts
+        .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+        .forEach((c, i) => {
+          const row = Math.floor(i / PER_ROW);
+          const col = i % PER_ROW;
+          const rowCount = Math.min(PER_ROW, monthContacts.length - row * PER_ROW);
+          const spacing = DOT_R * 2 + 4;
+          const rowStartX = colX - ((rowCount - 1) * spacing) / 2;
+          const dotX = rowStartX + col * spacing;
+          const dotY = axisY - 10 - row * (DOT_R * 2 + DOT_GAP);
+
+          const dot = document.createElementNS(ns, 'circle');
+          dot.setAttribute('class', 'timeline-dot');
+          dot.setAttribute('cx', dotX);
+          dot.setAttribute('cy', dotY);
+          dot.setAttribute('r', DOT_R);
+          dot.setAttribute('fill', outcomeColor(c));
+          dot.addEventListener('click', () => openModal(c.id));
+
+          const title = document.createElementNS(ns, 'title');
+          title.textContent = c.name + ' — ' + sourceBadgeText(c) + ' (' + c.date + ')';
+          dot.appendChild(title);
+
+          svg.appendChild(dot);
+        });
+    });
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function openModal(id) {
+    activeId = id;
+    const c = contacts.find(x => x.id === id);
+    if (!c) return;
+
+    document.getElementById('modal-name').textContent = c.name;
+    document.getElementById('modal-sub').textContent = 'Added ' + (c.date || '—');
+    populateSourceSelect(document.getElementById('edit-source'), false);
+    document.getElementById('edit-source').value = c.source || 'other';
+    document.getElementById('edit-sourceDetail').value = c.sourceDetail || '';
+    document.getElementById('edit-context').value = c.context || '';
+    document.getElementById('edit-notes').value = c.notes || '';
+
+    const callCheckbox = document.getElementById('edit-call-happened');
+    const callDateInput = document.getElementById('edit-call-date');
+    callCheckbox.checked = !!c.callDate;
+    callDateInput.value = c.callDate || '';
+    callDateInput.style.display = c.callDate ? 'block' : 'none';
+
+    document.getElementById('outcome-buttons').innerHTML = outcomes.map(o => `
+      <button type="button" class="outcome-btn ${o} ${c.outcome === o ? 'active ' + o : ''}" data-outcome="${o}" onclick="pickOutcome('${o}')">${outcomeLabels[o]}</button>
+    `).join('') + `
+      <button type="button" class="outcome-btn stillDeciding ${!c.outcome ? 'active stillDeciding' : ''}" onclick="pickOutcome(null)">Still deciding</button>
+    `;
+
+    document.getElementById('btn-cadence').textContent = c.inCadence ? '✓ Sent to Network Cadence' : '→ Network Cadence';
+
+    document.getElementById('overlay').classList.add('active');
+  }
+
+  function sendToCadence() {
+    const c = contacts.find(x => x.id === activeId);
+    if (!c) return;
+    const notesParts = [];
+    notesParts.push('Met via ' + sourceBadgeText(c));
+    if (c.context) notesParts.push(c.context);
+    if (c.notes) notesParts.push(c.notes);
+    const params = new URLSearchParams({
+      addName: c.name,
+      addNotes: notesParts.join(' — '),
+      addLast: c.callDate || c.date || todayStr()
+    });
+    window.open(CADENCE_URL + '?' + params.toString(), '_blank');
+    c.inCadence = true;
+    persist();
+    render();
+    document.getElementById('btn-cadence').textContent = '✓ Sent to Network Cadence';
+  }
+
+  function toggleCallDate() {
+    const checked = document.getElementById('edit-call-happened').checked;
+    const callDateInput = document.getElementById('edit-call-date');
+    callDateInput.style.display = checked ? 'block' : 'none';
+    if (checked && !callDateInput.value) callDateInput.value = todayStr();
+    if (!checked) callDateInput.value = '';
+  }
+
+  function pickOutcome(outcome) {
+    const c = contacts.find(x => x.id === activeId);
+    if (!c) return;
+    c.outcome = c.outcome === outcome ? null : outcome;
+    openModal(activeId);
+  }
+
+  function closeModal() {
+    document.getElementById('overlay').classList.remove('active');
+    activeId = null;
+  }
+
+  function saveModal() {
+    const c = contacts.find(x => x.id === activeId);
+    if (!c) return;
+    c.source = document.getElementById('edit-source').value || 'other';
+    c.sourceDetail = document.getElementById('edit-sourceDetail').value.trim();
+    c.context = document.getElementById('edit-context').value.trim();
+    c.notes = document.getElementById('edit-notes').value.trim();
+    const callChecked = document.getElementById('edit-call-happened').checked;
+    c.callDate = callChecked ? (document.getElementById('edit-call-date').value || todayStr()) : null;
+    persist();
+    render();
+    closeModal();
+  }
+
+  function deleteContact() {
+    contacts = contacts.filter(x => x.id !== activeId);
+    persist();
+    render();
+    closeModal();
+  }
+
+  // ============================================================
+  // Google Drive sync
+  // ============================================================
+
+  const GOOGLE_CLIENT_ID = "977352598129-rahsvdmk1na65u4qp4blansf5mvhm6m7.apps.googleusercontent.com";
+  const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
+  const DRIVE_FILENAME = "pipeline-data.json";
+  const TOKEN_KEY = "pipeline-drive-token";
+
+  const driveState = {
+    tokenClient: null,
+    accessToken: null,
+    tokenExpiry: 0,
+    fileId: null,
+    online: navigator.onLine,
+    signedIn: false,
+    lastError: null
+  };
+
+  function loadStoredToken() {
+    try {
+      const raw = localStorage.getItem(TOKEN_KEY);
+      if (!raw) return;
+      const t = JSON.parse(raw);
+      if (t && t.accessToken && t.expiry > Date.now()) {
+        driveState.accessToken = t.accessToken;
+        driveState.tokenExpiry = t.expiry;
+        driveState.signedIn = true;
+      }
+    } catch (e) {}
+  }
+
+  function storeToken(accessToken, expiresInSeconds) {
+    driveState.accessToken = accessToken;
+    driveState.tokenExpiry = Date.now() + expiresInSeconds * 1000;
+    driveState.signedIn = true;
+    localStorage.setItem(TOKEN_KEY, JSON.stringify({ accessToken, expiry: driveState.tokenExpiry }));
+  }
+
+  function clearToken() {
+    driveState.accessToken = null;
+    driveState.tokenExpiry = 0;
+    driveState.signedIn = false;
+    localStorage.removeItem(TOKEN_KEY);
+  }
+
+  function refreshSyncUI() {
+    const el = document.getElementById('syncStatus');
+    const label = document.getElementById('syncStatusLabel');
+    let mode = 'signedout', text = 'Sign in to sync';
+    if (!driveState.online) { mode = 'offline'; text = 'Offline — will sync'; }
+    else if (!driveState.signedIn) { mode = 'signedout'; text = 'Sign in to sync'; }
+    else if (driveState.lastError) { mode = 'error'; text = 'Sync error — retrying'; }
+    else { mode = 'synced'; text = 'Synced'; }
+    el.className = 'sync-status ' + mode;
+    label.textContent = text;
+  }
+
+  window.addEventListener('online', () => { driveState.online = true; refreshSyncUI(); trySyncFromDrive(); });
+  window.addEventListener('offline', () => { driveState.online = false; refreshSyncUI(); });
+
+  function initGoogleAuth() {
+    if (typeof google === 'undefined' || !google.accounts) { refreshSyncUI(); return; }
+    driveState.tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: DRIVE_SCOPE,
+      callback: function (resp) {
+        if (resp && resp.access_token) {
+          storeToken(resp.access_token, resp.expires_in || 3500);
+          refreshSyncUI();
+          closeSyncModal();
+          setStatus('Connected to Google Drive');
+          trySyncFromDrive();
+        }
+      }
+    });
+    loadStoredToken();
+    refreshSyncUI();
+    if (driveState.signedIn) trySyncFromDrive();
+  }
+
+  function requestSignIn() {
+    if (!driveState.tokenClient) {
+      alert('Google sign-in is still loading — try again in a moment.');
+      return;
+    }
+    driveState.tokenClient.requestAccessToken({ prompt: driveState.signedIn ? '' : 'consent' });
+  }
+
+  function disconnectDrive() {
+    if (!confirm('Disconnect Google Drive? Your data will stay on this device but will stop syncing.')) return;
+    clearToken();
+    driveState.fileId = null;
+    refreshSyncUI();
+    closeSyncModal();
+    setStatus('Disconnected from Google Drive');
+  }
+
+  function ensureValidToken(cb) {
+    if (driveState.accessToken && Date.now() < driveState.tokenExpiry - 30000) { cb(true); return; }
+    if (!driveState.tokenClient) { cb(false); return; }
+    driveState.tokenClient.callback = function (resp) {
+      if (resp && resp.access_token) {
+        storeToken(resp.access_token, resp.expires_in || 3500);
+        cb(true);
+      } else {
+        cb(false);
+      }
+    };
+    driveState.tokenClient.requestAccessToken({ prompt: '' });
+  }
+
+  function driveFetch(url, opts) {
+    opts = opts || {};
+    opts.headers = opts.headers || {};
+    opts.headers['Authorization'] = 'Bearer ' + driveState.accessToken;
+    return fetch(url, opts);
+  }
+
+  function findDriveFile(cb) {
+    const params = new URLSearchParams({
+      spaces: 'appDataFolder',
+      q: `name='${DRIVE_FILENAME}' and trashed=false`,
+      fields: 'files(id,name,modifiedTime)',
+      orderBy: 'modifiedTime desc'
+    });
+    driveFetch('https://www.googleapis.com/drive/v3/files?' + params.toString())
+      .then(r => r.json().then(data => ({ ok: r.ok, data })))
+      .then(res => {
+        if (!res.ok) {
+          driveState.lastError = (res.data && res.data.error) || new Error('Drive lookup failed');
+          refreshSyncUI();
+          cb(null, driveState.lastError);
+          return;
+        }
+        const files = res.data.files || [];
+        if (!files.length) { cb(null); return; }
+        driveState.fileId = files[0].id;
+        if (files.length > 1) {
+          files.slice(1).forEach(dupe => {
+            driveFetch('https://www.googleapis.com/drive/v3/files/' + dupe.id, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ trashed: true })
+            }).catch(() => {});
+          });
+        }
+        cb(driveState.fileId);
+      })
+      .catch(err => { driveState.lastError = err; refreshSyncUI(); cb(null, err); });
+  }
+
+  function downloadDriveFile(fileId, cb) {
+    driveFetch('https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media')
+      .then(r => r.json())
+      .then(data => cb(data))
+      .catch(err => { driveState.lastError = err; refreshSyncUI(); cb(null, err); });
+  }
+
+  function createDriveFile(payload, cb) {
+    const metadata = { name: DRIVE_FILENAME, parents: ['appDataFolder'] };
+    const boundary = '-------pipelineboundary';
+    const body =
+      '--' + boundary + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' +
+      JSON.stringify(metadata) + '\r\n' +
+      '--' + boundary + '\r\nContent-Type: application/json\r\n\r\n' +
+      JSON.stringify(payload) + '\r\n' +
+      '--' + boundary + '--';
+
+    driveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+      method: 'POST',
+      headers: { 'Content-Type': 'multipart/related; boundary=' + boundary },
+      body
+    }).then(r => r.json())
+      .then(data => { driveState.fileId = data.id; cb(true); })
+      .catch(err => { driveState.lastError = err; refreshSyncUI(); cb(false, err); });
+  }
+
+  function updateDriveFile(fileId, payload, cb) {
+    driveFetch('https://www.googleapis.com/upload/drive/v3/files/' + fileId + '?uploadType=media', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(r => {
+      if (!r.ok) throw new Error('Drive write failed: ' + r.status);
+      driveState.lastError = null;
+      cb(true);
+    }).catch(err => { driveState.lastError = err; refreshSyncUI(); cb(false, err); });
+  }
+
+  function currentPayload() {
+    return { contacts, updatedAt: lastUpdatedAt };
+  }
+
+  function writeToDrive() {
+    if (!driveState.online || !driveState.signedIn) return;
+    ensureValidToken(ok => {
+      if (!ok) return;
+      const payload = currentPayload();
+      if (driveState.fileId) {
+        updateDriveFile(driveState.fileId, payload, () => refreshSyncUI());
+      } else {
+        findDriveFile((fileId, err) => {
+          if (fileId) {
+            updateDriveFile(fileId, payload, () => refreshSyncUI());
+          } else if (!err) {
+            createDriveFile(payload, () => refreshSyncUI());
+          } else {
+            refreshSyncUI();
+          }
+        });
+      }
+    });
+  }
+
+  let writeDebounceTimer;
+  function scheduleDriveWrite() {
+    if (!driveState.signedIn) return;
+    clearTimeout(writeDebounceTimer);
+    writeDebounceTimer = setTimeout(writeToDrive, 1500);
+  }
+
+  function trySyncFromDrive() {
+    if (!driveState.online || !driveState.signedIn) return;
+    ensureValidToken(ok => {
+      if (!ok) return;
+      refreshSyncUI();
+      findDriveFile((fileId, err) => {
+        if (!fileId) {
+          if (err) { refreshSyncUI(); return; }
+          createDriveFile(currentPayload(), () => refreshSyncUI());
+          return;
+        }
+        downloadDriveFile(fileId, remote => {
+          if (!remote) { refreshSyncUI(); return; }
+          const remoteUpdatedAt = typeof remote.updatedAt === 'number' ? remote.updatedAt : 0;
+          if (remoteUpdatedAt >= lastUpdatedAt) {
+            contacts = Array.isArray(remote.contacts) ? remote.contacts : [];
+            lastUpdatedAt = remoteUpdatedAt;
+            localStorage.setItem(UPDATED_AT_KEY, String(lastUpdatedAt));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(contacts));
+            render();
+          }
+          refreshSyncUI();
+        });
+      });
+    });
+  }
+
+  function openSyncModal() {
+    document.getElementById('connectDriveBtn').style.display = driveState.signedIn ? 'none' : 'inline-block';
+    document.getElementById('disconnectDriveBtn').style.display = driveState.signedIn ? 'inline-block' : 'none';
+    let bodyText = driveState.signedIn
+      ? 'Connected. Your data syncs automatically to a hidden folder in your Google Drive.'
+      : 'Connect Google Drive so this pipeline stays the same on your phone and your laptop. Your data is stored in a hidden app folder in your Drive.';
+    if (driveState.lastError) {
+      const msg = driveState.lastError.message || (driveState.lastError.error && driveState.lastError.error.message) || JSON.stringify(driveState.lastError);
+      bodyText += '\n\nLast sync error: ' + msg;
+    }
+    const bodyEl = document.getElementById('syncModalBody');
+    bodyEl.textContent = bodyText;
+    bodyEl.style.whiteSpace = 'pre-wrap';
+    document.getElementById('syncModalOverlay').classList.add('active');
+  }
+
+  function closeSyncModal() {
+    document.getElementById('syncModalOverlay').classList.remove('active');
+  }
+
+  document.getElementById('syncStatus').addEventListener('click', openSyncModal);
+  document.getElementById('syncModalOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'syncModalOverlay') closeSyncModal();
+  });
+
+  document.getElementById('overlay').addEventListener('click', (e) => {
+    if (e.target.id === 'overlay') closeModal();
+  });
+
+  document.getElementById('qa-name').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') quickAdd();
+  });
+
+  populateSourceSelect(document.getElementById('qa-source'), false);
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('./sw.js').catch(function () {});
+    });
+  }
+
+  loadContacts();
+  refreshSyncUI();
+
+  window.addEventListener('load', function () {
+    let tries = 0;
+    (function waitForGis() {
+      tries++;
+      if (typeof google !== 'undefined' && google.accounts) {
+        initGoogleAuth();
+      } else if (tries < 40) {
+        setTimeout(waitForGis, 125);
+      } else {
+        refreshSyncUI();
+      }
+    })();
+  });
+</script>
+</body>
+</html>
