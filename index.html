@@ -268,11 +268,11 @@
   /* ---------- BOARD ---------- */
   .board {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 16px;
   }
 
-  @media (max-width: 700px) {
+  @media (max-width: 900px) {
     .board { grid-template-columns: 1fr; }
   }
 
@@ -685,6 +685,13 @@
     </div>
     <div class="column">
       <div class="column-head">
+        <div class="column-title">Pending</div>
+        <div class="column-count" id="count-pending">0</div>
+      </div>
+      <div class="column-body" id="col-pending"></div>
+    </div>
+    <div class="column">
+      <div class="column-head">
         <div class="column-title">Outcome</div>
         <div class="column-count" id="count-outcome">0</div>
       </div>
@@ -958,9 +965,18 @@
   function render() {
     renderSourceFilter();
     const visible = visibleContacts();
+    const PENDING_OUTCOMES = ['opportunity', 'followup'];
+    const RESOLVED_OUTCOMES = ['won', 'nothing'];
     const buckets = {
       engaged: visible.filter(c => !c.outcome),
-      outcome: visible.filter(c => c.outcome)
+      pending: visible.filter(c => PENDING_OUTCOMES.includes(c.outcome)),
+      outcome: visible.filter(c => RESOLVED_OUTCOMES.includes(c.outcome))
+    };
+
+    const emptyHints = {
+      engaged: 'Nothing here yet. Add someone you met above.',
+      pending: 'Tag someone Opportunity or Follow-up and they land here.',
+      outcome: 'Resolved contacts — Deal Closed or Nothing burger — land here.'
     };
 
     Object.keys(buckets).forEach(key => {
@@ -969,10 +985,7 @@
       document.getElementById('count-' + key).textContent = items.length;
 
       if (items.length === 0) {
-        col.innerHTML = `<div class="empty-hint">${
-          key === 'engaged' ? 'Nothing here yet. Add someone you met above.' :
-          'Outcomes land here once you tag one.'
-        }</div>`;
+        col.innerHTML = `<div class="empty-hint">${emptyHints[key]}</div>`;
         return;
       }
 
