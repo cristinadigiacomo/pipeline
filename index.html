@@ -30,6 +30,8 @@
     --amber: #d4a24c;
     --red: #d4685f;
     --red-dim: #8a5b52;
+    --gold: #f2c94c;
+    --gold-dim: #8a7328;
     --font-display: 'IBM Plex Mono', 'Courier New', monospace;
     --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   }
@@ -94,6 +96,7 @@
     margin-top: 6px;
   }
   .stat-num.mint { color: var(--mint); }
+  .stat-num.gold { color: var(--gold); }
 
   .sync-status {
     display: flex;
@@ -238,10 +241,12 @@
   .quick-add input::placeholder { color: var(--text-faint); }
   .quick-add input:focus, .quick-add select:focus { outline: none; border-color: var(--mint-dim); }
 
-  .quick-add input[name="name"] { flex: 1 1 160px; }
-  .quick-add select[name="source"] { flex: 1 1 140px; }
-  .quick-add input[name="sourceDetail"] { flex: 1 1 160px; }
-  .quick-add input[name="context"] { flex: 2 1 260px; }
+  .quick-add input[name="name"] { flex: 1 1 150px; }
+  .quick-add input[name="company"] { flex: 1 1 140px; }
+  .quick-add select[name="source"] { flex: 1 1 130px; }
+  .quick-add input[name="sourceDetail"] { flex: 1 1 150px; }
+  .quick-add input[name="context"] { flex: 2 1 220px; }
+  .quick-add select[name="status"] { flex: 1 1 140px; }
   .quick-add input[name="date"] { flex: 0 1 170px; }
 
   .btn-add {
@@ -334,7 +339,13 @@
     font-size: 19px;
     font-weight: 600;
     color: var(--text);
-    margin-bottom: 6px;
+    margin-bottom: 2px;
+  }
+
+  .card-company {
+    font-size: 14px;
+    color: var(--text-faint);
+    margin-bottom: 8px;
   }
 
   .card-context {
@@ -372,6 +383,7 @@
   .tag.opportunity { background: rgba(95,227,168,0.15); color: var(--mint); }
   .tag.followup { background: rgba(212,162,76,0.15); color: var(--amber); }
   .tag.nothing { background: rgba(212,104,95,0.15); color: var(--red); }
+  .tag.won { background: rgba(242,201,76,0.18); color: var(--gold); }
 
   .card-badges {
     display: flex;
@@ -519,6 +531,7 @@
   .outcome-btn.active.opportunity { border-color: var(--mint); color: var(--mint); background: rgba(95,227,168,0.1); }
   .outcome-btn.active.followup { border-color: var(--amber); color: var(--amber); background: rgba(212,162,76,0.1); }
   .outcome-btn.active.nothing { border-color: var(--red); color: var(--red); background: rgba(212,104,95,0.1); }
+  .outcome-btn.active.won { border-color: var(--gold); color: var(--gold); background: rgba(242,201,76,0.12); }
   .outcome-btn.active.stillDeciding { border-color: var(--text-faint); color: var(--text-dim); background: rgba(255,255,255,0.03); }
 
   .modal-actions {
@@ -633,8 +646,9 @@
     <div class="header-right">
       <div class="stats">
         <div class="stat"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total</div></div>
+        <div class="stat"><div class="stat-num gold" id="stat-wins">0</div><div class="stat-label">Wins</div></div>
         <div class="stat"><div class="stat-num" id="stat-calls">0</div><div class="stat-label">Follow-ups happened</div></div>
-        <div class="stat"><div class="stat-num mint" id="stat-rate">&mdash;</div><div class="stat-label">Hit rate</div></div>
+        <div class="stat"><div class="stat-num mint" id="stat-rate">&mdash;</div><div class="stat-label">Win rate</div></div>
       </div>
       <div class="sync-status signedout" id="syncStatus">
         <span class="sync-dot"></span>
@@ -652,9 +666,11 @@
 
   <div class="quick-add">
     <input type="text" name="name" placeholder="Name" id="qa-name">
+    <input type="text" name="company" placeholder="Company" id="qa-company">
     <select name="source" id="qa-source"></select>
     <input type="text" name="sourceDetail" placeholder="Detail (event name, who referred, etc.)" id="qa-sourceDetail">
     <input type="text" name="context" placeholder="What did you talk about?" id="qa-context">
+    <select name="status" id="qa-status"></select>
     <input type="date" name="date" id="qa-date">
     <button class="btn-add" onclick="quickAdd()">+ Add</button>
   </div>
@@ -704,6 +720,11 @@
     <button class="btn-close" onclick="closeModal()">&times;</button>
     <div class="modal-title" id="modal-name">&nbsp;</div>
     <div class="modal-sub" id="modal-sub">&nbsp;</div>
+
+    <div class="field">
+      <label>Company</label>
+      <input type="text" id="edit-company">
+    </div>
 
     <div class="field-row">
       <div class="field">
@@ -759,15 +780,21 @@
   let contacts = [];
   let activeId = null;
   let activeFilter = 'all';
-  const outcomes = ['opportunity', 'followup', 'nothing'];
-  const outcomeLabels = { opportunity: 'Opportunity', followup: 'Follow-up', nothing: 'Nothing burger' };
+  const outcomes = ['opportunity', 'followup', 'nothing', 'won'];
+  const outcomeLabels = { opportunity: 'Opportunity', followup: 'Follow-up', nothing: 'Nothing burger', won: 'Deal Closed' };
 
-  const SOURCES = ['linkedin', 'event', 'referral', 'outreach', 'other'];
-  const sourceLabels = { linkedin: 'LinkedIn', event: 'Event', referral: 'Referral', outreach: 'Outreach', other: 'Other' };
+  const SOURCES = ['linkedin', 'event', 'referral', 'outreach', 'channel_partner', 'other'];
+  const sourceLabels = { linkedin: 'LinkedIn', event: 'Event', referral: 'Referral', outreach: 'Outreach', channel_partner: 'Channel Partner', other: 'Other' };
 
   function populateSourceSelect(el, includeAll) {
     let html = includeAll ? '<option value="all">All sources</option>' : '';
     html += SOURCES.map(s => `<option value="${s}">${sourceLabels[s]}</option>`).join('');
+    el.innerHTML = html;
+  }
+
+  function populateStatusSelect(el) {
+    let html = '<option value="">Still deciding</option>';
+    html += outcomes.map(o => `<option value="${o}">${outcomeLabels[o]}</option>`).join('');
     el.innerHTML = html;
   }
 
@@ -871,9 +898,11 @@
 
   function quickAdd() {
     const nameEl = document.getElementById('qa-name');
+    const companyEl = document.getElementById('qa-company');
     const sourceEl = document.getElementById('qa-source');
     const detailEl = document.getElementById('qa-sourceDetail');
     const contextEl = document.getElementById('qa-context');
+    const statusEl = document.getElementById('qa-status');
     const dateEl = document.getElementById('qa-date');
     const name = nameEl.value.trim();
     if (!name) { nameEl.focus(); return; }
@@ -881,18 +910,21 @@
     contacts.unshift({
       id: uid(),
       name,
+      company: companyEl.value.trim(),
       source: sourceEl.value || 'other',
       sourceDetail: detailEl.value.trim(),
       context: contextEl.value.trim(),
       notes: '',
       date: dateEl.value || todayStr(),
       callDate: null,
-      outcome: null
+      outcome: statusEl.value || null
     });
 
     nameEl.value = '';
+    companyEl.value = '';
     detailEl.value = '';
     contextEl.value = '';
+    statusEl.value = '';
     dateEl.value = '';
     persist();
     render();
@@ -947,6 +979,7 @@
       col.innerHTML = items.map(c => `
         <div class="card" onclick="openModal('${c.id}')">
           <div class="card-name">${escapeHtml(c.name)}</div>
+          ${c.company ? `<div class="card-company">${escapeHtml(c.company)}</div>` : ''}
           ${c.context ? `<div class="card-context">${escapeHtml(c.context)}</div>` : ''}
           <div class="card-badges">
             <div class="badge-source">${escapeHtml(sourceBadgeText(c))}</div>
@@ -965,8 +998,9 @@
     const total = contacts.length;
     const calls = contacts.filter(c => c.callDate).length;
     const decided = contacts.filter(c => c.outcome).length;
-    const wins = contacts.filter(c => c.outcome === 'opportunity').length;
+    const wins = contacts.filter(c => c.outcome === 'won').length;
     document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-wins').textContent = wins;
     document.getElementById('stat-calls').textContent = calls;
     document.getElementById('stat-rate').textContent = decided > 0 ? Math.round((wins/decided)*100) + '%' : '—';
 
@@ -974,6 +1008,7 @@
   }
 
   function outcomeColor(c) {
+    if (c.outcome === 'won') return 'var(--gold)';
     if (c.outcome === 'opportunity') return 'var(--mint)';
     if (c.outcome === 'followup') return 'var(--amber)';
     if (c.outcome === 'nothing') return 'var(--red)';
@@ -991,6 +1026,7 @@
 
     const withDates = visibleContacts().filter(c => c.date);
     const allCategories = [
+      { label: 'Deal Closed', color: 'var(--gold)' },
       { label: 'Opportunity', color: 'var(--mint)' },
       { label: 'Follow-up', color: 'var(--amber)' },
       { label: 'Nothing burger', color: 'var(--red)' },
@@ -1118,6 +1154,7 @@
 
     document.getElementById('modal-name').textContent = c.name;
     document.getElementById('modal-sub').textContent = 'Added ' + (c.date || '—');
+    document.getElementById('edit-company').value = c.company || '';
     populateSourceSelect(document.getElementById('edit-source'), false);
     document.getElementById('edit-source').value = c.source || 'other';
     document.getElementById('edit-sourceDetail').value = c.sourceDetail || '';
@@ -1183,6 +1220,7 @@
   function saveModal() {
     const c = contacts.find(x => x.id === activeId);
     if (!c) return;
+    c.company = document.getElementById('edit-company').value.trim();
     c.source = document.getElementById('edit-source').value || 'other';
     c.sourceDetail = document.getElementById('edit-sourceDetail').value.trim();
     c.context = document.getElementById('edit-context').value.trim();
@@ -1484,6 +1522,7 @@
   });
 
   populateSourceSelect(document.getElementById('qa-source'), false);
+  populateStatusSelect(document.getElementById('qa-status'));
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
