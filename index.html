@@ -32,6 +32,8 @@
     --red-dim: #8a5b52;
     --gold: #f2c94c;
     --gold-dim: #8a7328;
+    --slate: #8a95a5;
+    --slate-dim: #4a5560;
     --font-display: 'IBM Plex Mono', 'Courier New', monospace;
     --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   }
@@ -382,6 +384,7 @@
   }
   .tag.opportunity { background: rgba(95,227,168,0.15); color: var(--mint); }
   .tag.followup { background: rgba(212,162,76,0.15); color: var(--amber); }
+  .tag.stalled { background: rgba(138,149,165,0.15); color: var(--slate); }
   .tag.nothing { background: rgba(212,104,95,0.15); color: var(--red); }
   .tag.won { background: rgba(242,201,76,0.18); color: var(--gold); }
 
@@ -530,6 +533,7 @@
   }
   .outcome-btn.active.opportunity { border-color: var(--mint); color: var(--mint); background: rgba(95,227,168,0.1); }
   .outcome-btn.active.followup { border-color: var(--amber); color: var(--amber); background: rgba(212,162,76,0.1); }
+  .outcome-btn.active.stalled { border-color: var(--slate); color: var(--slate); background: rgba(138,149,165,0.1); }
   .outcome-btn.active.nothing { border-color: var(--red); color: var(--red); background: rgba(212,104,95,0.1); }
   .outcome-btn.active.won { border-color: var(--gold); color: var(--gold); background: rgba(242,201,76,0.12); }
   .outcome-btn.active.stillDeciding { border-color: var(--text-faint); color: var(--text-dim); background: rgba(255,255,255,0.03); }
@@ -787,8 +791,8 @@
   let contacts = [];
   let activeId = null;
   let activeFilter = 'all';
-  const outcomes = ['opportunity', 'followup', 'nothing', 'won'];
-  const outcomeLabels = { opportunity: 'Opportunity', followup: 'Follow-up', nothing: 'Nothing burger', won: 'Deal Closed' };
+  const outcomes = ['opportunity', 'followup', 'stalled', 'nothing', 'won'];
+  const outcomeLabels = { opportunity: 'Opportunity', followup: 'Follow-up', stalled: 'Stalled', nothing: 'Nothing burger', won: 'Deal Closed' };
 
   const SOURCES = ['linkedin', 'event', 'referral', 'outreach', 'channel_partner', 'other'];
   const sourceLabels = { linkedin: 'LinkedIn', event: 'Event', referral: 'Referral', outreach: 'Outreach', channel_partner: 'Channel Partner', other: 'Other' };
@@ -965,7 +969,7 @@
   function render() {
     renderSourceFilter();
     const visible = visibleContacts();
-    const PENDING_OUTCOMES = ['opportunity', 'followup'];
+    const PENDING_OUTCOMES = ['opportunity', 'followup', 'stalled'];
     const RESOLVED_OUTCOMES = ['won', 'nothing'];
     const buckets = {
       engaged: visible.filter(c => !c.outcome),
@@ -975,7 +979,7 @@
 
     const emptyHints = {
       engaged: 'Nothing here yet. Add someone you met above.',
-      pending: 'Tag someone Opportunity or Follow-up and they land here.',
+      pending: 'Tag someone Opportunity, Follow-up, or Stalled and they land here.',
       outcome: 'Resolved contacts — Deal Closed or Nothing burger — land here.'
     };
 
@@ -1010,7 +1014,7 @@
     // header stats (always across ALL contacts, not just the filtered view)
     const total = contacts.length;
     const calls = contacts.filter(c => c.callDate).length;
-    const decided = contacts.filter(c => c.outcome).length;
+    const decided = contacts.filter(c => c.outcome === 'won' || c.outcome === 'nothing').length;
     const wins = contacts.filter(c => c.outcome === 'won').length;
     document.getElementById('stat-total').textContent = total;
     document.getElementById('stat-wins').textContent = wins;
@@ -1024,6 +1028,7 @@
     if (c.outcome === 'won') return 'var(--gold)';
     if (c.outcome === 'opportunity') return 'var(--mint)';
     if (c.outcome === 'followup') return 'var(--amber)';
+    if (c.outcome === 'stalled') return 'var(--slate)';
     if (c.outcome === 'nothing') return 'var(--red)';
     return '#575757';
   }
@@ -1042,6 +1047,7 @@
       { label: 'Deal Closed', color: 'var(--gold)' },
       { label: 'Opportunity', color: 'var(--mint)' },
       { label: 'Follow-up', color: 'var(--amber)' },
+      { label: 'Stalled', color: 'var(--slate)' },
       { label: 'Nothing burger', color: 'var(--red)' },
       { label: 'Still deciding', color: '#575757' }
     ];
